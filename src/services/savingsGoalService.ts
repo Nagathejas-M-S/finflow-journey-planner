@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type SavingsGoal = {
   id: string;
@@ -10,6 +11,7 @@ export type SavingsGoal = {
   deadline: string;
   created_at: string;
   updated_at: string;
+  user_id: string;
 };
 
 export type NewSavingsGoal = {
@@ -17,13 +19,22 @@ export type NewSavingsGoal = {
   target_amount: number;
   current_amount: number;
   deadline: string;
+  user_id: string;
 };
 
 export const getSavingsGoals = async () => {
   try {
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session.session?.user.id;
+
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
+
     const { data, error } = await supabase
       .from("savings_goals")
       .select("*")
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -42,11 +53,20 @@ export const getSavingsGoals = async () => {
   }
 };
 
-export const createSavingsGoal = async (goal: NewSavingsGoal) => {
+export const createSavingsGoal = async (goal: Omit<NewSavingsGoal, "user_id">) => {
   try {
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session.session?.user.id;
+
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
+
+    const goalWithUserId = { ...goal, user_id: userId };
+
     const { data, error } = await supabase
       .from("savings_goals")
-      .insert([goal])
+      .insert([goalWithUserId])
       .select();
 
     if (error) {

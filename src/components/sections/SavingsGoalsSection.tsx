@@ -9,7 +9,6 @@ import SavingsGoalDialog from "../savings/SavingsGoalDialog";
 import AddFundsDialog from "../savings/AddFundsDialog";
 import { 
   SavingsGoal, 
-  NewSavingsGoal,
   getSavingsGoals, 
   createSavingsGoal, 
   updateSavingsGoal, 
@@ -56,11 +55,11 @@ const SavingsGoalsSection = () => {
     },
   });
 
-  const handleCreateGoal = (data: NewSavingsGoal) => {
+  const handleCreateGoal = (data: any) => {
     createMutation.mutate(data);
   };
 
-  const handleEditGoal = (data: NewSavingsGoal) => {
+  const handleEditGoal = (data: any) => {
     if (selectedGoal) {
       updateMutation.mutate({ id: selectedGoal.id, updates: data });
     }

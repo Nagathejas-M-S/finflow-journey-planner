@@ -7,6 +7,7 @@ export type ExpenseCategory = {
   name: string;
   budget: number;
   created_at: string;
+  user_id: string;
 };
 
 export type Expense = {
@@ -16,13 +17,30 @@ export type Expense = {
   description: string;
   date: string;
   created_at: string;
+  user_id: string;
+};
+
+export type NewExpense = {
+  category_id: string | null;
+  amount: number;
+  description: string;
+  date: string;
+  user_id: string;
 };
 
 export const getExpenseCategories = async () => {
   try {
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session.session?.user.id;
+    
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
+    
     const { data, error } = await supabase
       .from("expense_categories")
       .select("*")
+      .eq("user_id", userId)
       .order("name", { ascending: true });
 
     if (error) {
@@ -66,9 +84,17 @@ export const updateCategoryBudget = async (id: string, budget: number) => {
 
 export const getExpenses = async (startDate: string, endDate: string) => {
   try {
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session.session?.user.id;
+    
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
+    
     const { data, error } = await supabase
       .from("expenses")
       .select("*")
+      .eq("user_id", userId)
       .gte("date", startDate)
       .lte("date", endDate)
       .order("date", { ascending: false });
@@ -89,11 +115,20 @@ export const getExpenses = async (startDate: string, endDate: string) => {
   }
 };
 
-export const createExpense = async (expense: Omit<Expense, "id" | "created_at">) => {
+export const createExpense = async (expense: Omit<NewExpense, "user_id">) => {
   try {
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session.session?.user.id;
+    
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
+    
+    const expenseWithUserId = { ...expense, user_id: userId };
+    
     const { data, error } = await supabase
       .from("expenses")
-      .insert([expense])
+      .insert([expenseWithUserId])
       .select();
 
     if (error) {

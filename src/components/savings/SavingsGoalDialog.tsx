@@ -20,7 +20,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { NewSavingsGoal, SavingsGoal } from "@/services/savingsGoalService";
+import { SavingsGoal } from "@/services/savingsGoalService";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -29,10 +29,12 @@ const formSchema = z.object({
   deadline: z.string().min(1, "Deadline is required"),
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 interface SavingsGoalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: NewSavingsGoal) => void;
+  onSubmit: (data: FormValues) => void;
   goal?: SavingsGoal;
   title: string;
 }
@@ -44,7 +46,7 @@ const SavingsGoalDialog: React.FC<SavingsGoalDialogProps> = ({
   goal,
   title,
 }) => {
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: goal?.name || "",
@@ -54,7 +56,7 @@ const SavingsGoalDialog: React.FC<SavingsGoalDialogProps> = ({
     },
   });
 
-  const handleSubmit = (data: z.infer<typeof formSchema>) => {
+  const handleSubmit = (data: FormValues) => {
     onSubmit(data);
     form.reset();
   };

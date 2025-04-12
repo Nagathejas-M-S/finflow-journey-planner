@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Sparkles } from "lucide-react";
 import SavingsGoalCard from "../savings/SavingsGoalCard";
 import SavingsGoalDialog from "../savings/SavingsGoalDialog";
 import AddFundsDialog from "../savings/AddFundsDialog";
@@ -31,7 +31,11 @@ const SavingsGoalsSection = () => {
     mutationFn: createSavingsGoal,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["savingsGoals"] });
-      toast({ title: "Success", description: "Savings goal created successfully!" });
+      toast({ 
+        title: "Goal Created", 
+        description: "Your savings goal has been created successfully!",
+        variant: "success"
+      });
       setCreateDialogOpen(false);
     },
   });
@@ -39,11 +43,28 @@ const SavingsGoalsSection = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<SavingsGoal> }) => 
       updateSavingsGoal(id, updates),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["savingsGoals"] });
-      toast({ title: "Success", description: "Savings goal updated successfully!" });
-      setEditDialogOpen(false);
-      setAddFundsDialogOpen(false);
+      
+      if (addFundsDialogOpen) {
+        // Display a celebratory message when adding funds
+        toast({ 
+          title: "Funds Added!", 
+          description: <div className="flex items-center">
+            <Sparkles className="h-4 w-4 mr-2 text-yellow-500" />
+            <span>Great job! You're making progress towards your goal!</span>
+          </div>,
+          variant: "success"
+        });
+        setAddFundsDialogOpen(false);
+      } else {
+        toast({ 
+          title: "Goal Updated", 
+          description: "Your savings goal has been updated successfully!",
+          variant: "success" 
+        });
+        setEditDialogOpen(false);
+      }
     },
   });
 
@@ -51,7 +72,10 @@ const SavingsGoalsSection = () => {
     mutationFn: deleteSavingsGoal,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["savingsGoals"] });
-      toast({ title: "Success", description: "Savings goal deleted successfully!" });
+      toast({ 
+        title: "Goal Deleted", 
+        description: "Your savings goal has been deleted successfully.",
+      });
     },
   });
 
@@ -84,37 +108,69 @@ const SavingsGoalsSection = () => {
   const handleAddFundsSubmit = (amount: number) => {
     if (selectedGoal) {
       const newAmount = selectedGoal.current_amount + amount;
+      const isGoalReached = newAmount >= selectedGoal.target_amount;
+      
       updateMutation.mutate({
         id: selectedGoal.id,
         updates: { current_amount: newAmount },
       });
+      
+      // If goal is reached, show special celebration toast
+      if (isGoalReached) {
+        setTimeout(() => {
+          toast({ 
+            title: "🎉 Goal Achieved!", 
+            description: "Congratulations! You've reached your savings goal!",
+            variant: "success"
+          });
+        }, 500);
+      }
     }
   };
 
   if (isLoading) {
-    return <div className="text-center py-8">Loading savings goals...</div>;
+    return (
+      <div className="text-center py-12">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="mt-2 text-muted-foreground">Loading your savings goals...</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Savings Goals</h2>
-        <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+        <Button 
+          size="sm" 
+          onClick={() => setCreateDialogOpen(true)}
+          className="ml-auto bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg"
+        >
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Goal
         </Button>
       </div>
 
       {goals.length === 0 ? (
-        <div className="text-center py-8 bg-muted/50 rounded-lg">
-          <p className="text-muted-foreground">You haven't created any savings goals yet.</p>
-          <Button variant="outline" className="mt-4" onClick={() => setCreateDialogOpen(true)}>
+        <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 rounded-full bg-purple-50 dark:bg-purple-900/20">
+              <PlusCircle className="h-10 w-10 text-purple-500 dark:text-purple-400" />
+            </div>
+          </div>
+          <h3 className="text-lg font-medium mb-2">No savings goals yet</h3>
+          <p className="text-muted-foreground max-w-md mx-auto mb-6">
+            Create your first savings goal to start tracking your progress toward financial success.
+          </p>
+          <Button 
+            onClick={() => setCreateDialogOpen(true)}
+            className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg"
+          >
             <PlusCircle className="mr-2 h-4 w-4" />
             Create your first goal
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-fade-in">
           {goals.map((goal) => (
             <SavingsGoalCard
               key={goal.id}

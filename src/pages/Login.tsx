@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import MainLayout from "@/components/layout/MainLayout";
+import { useAuth } from "@/contexts/AuthContext";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -19,7 +20,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
-  const navigate = useNavigate();
+  const { signIn, isLoading, user } = useAuth();
   const { toast } = useToast();
   
   const form = useForm<LoginFormValues>({
@@ -30,23 +31,33 @@ const Login = () => {
     },
   });
 
+  // If user is already logged in, redirect to dashboard
+  if (user) {
+    return <Navigate to="/dashboard" />;
+  }
+
   const onSubmit = async (data: LoginFormValues) => {
     try {
-      // This will be replaced with actual Supabase authentication
-      console.log("Login attempt with:", data);
+      const { error } = await signIn(data.email, data.password);
       
-      // For now, let's simulate a successful login
-      toast({
-        title: "Login successful",
-        description: "Welcome back to FinJourney!",
-      });
-      
-      navigate("/dashboard");
+      if (error) {
+        console.error("Login failed:", error);
+        toast({
+          title: "Login failed",
+          description: error.message || "Please check your credentials and try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login successful",
+          description: "Welcome back to FinJourney!",
+        });
+      }
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
-        description: "Please check your credentials and try again.",
+        description: "An unexpected error occurred. Please try again later.",
         variant: "destructive",
       });
     }
@@ -91,7 +102,9 @@ const Login = () => {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">Login</Button>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Logging in..." : "Login"}
+                </Button>
               </form>
             </Form>
           </CardContent>

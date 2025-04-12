@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -13,15 +14,23 @@ interface MainLayoutProps {
 const MainLayout = ({ children, showNavigation = true }: MainLayoutProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signOut, user } = useAuth();
 
-  // This will be replaced with actual Supabase authentication after setup
-  const handleLogout = () => {
-    // We'll implement actual logout with Supabase later
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully.",
-    });
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logged out",
+        description: "You have been logged out successfully.",
+      });
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast({
+        title: "Logout failed",
+        description: "An error occurred during logout. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -33,19 +42,32 @@ const MainLayout = ({ children, showNavigation = true }: MainLayoutProps) => {
               <h1 className="text-xl font-bold text-primary">FinJourney</h1>
             </Link>
             <nav className="flex items-center gap-4">
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">Dashboard</Button>
-              </Link>
-              <Link to="/profile">
-                <Button variant="outline" size="sm">
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </Button>
-              </Link>
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
+              {user ? (
+                <>
+                  <Link to="/dashboard">
+                    <Button variant="ghost" size="sm">Dashboard</Button>
+                  </Link>
+                  <Link to="/profile">
+                    <Button variant="outline" size="sm">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Button>
+                  </Link>
+                  <Button variant="ghost" size="sm" onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login">
+                    <Button variant="ghost" size="sm">Login</Button>
+                  </Link>
+                  <Link to="/register">
+                    <Button variant="outline" size="sm">Register</Button>
+                  </Link>
+                </>
+              )}
             </nav>
           </div>
         </header>

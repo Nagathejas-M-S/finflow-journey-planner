@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import MainLayout from "@/components/layout/MainLayout";
+import { useAuth } from "@/contexts/AuthContext";
 
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -24,7 +25,7 @@ const registerSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const Register = () => {
-  const navigate = useNavigate();
+  const { signUp, isLoading, user } = useAuth();
   const { toast } = useToast();
   
   const form = useForm<RegisterFormValues>({
@@ -37,24 +38,35 @@ const Register = () => {
     },
   });
 
+  // If user is already logged in, redirect to dashboard
+  if (user) {
+    return <Navigate to="/dashboard" />;
+  }
+
   const onSubmit = async (data: RegisterFormValues) => {
     try {
-      // This will be replaced with actual Supabase authentication
-      console.log("Registration attempt with:", data);
+      const { error } = await signUp(data.email, data.password, data.name);
       
-      // For now, let's simulate a successful registration
-      toast({
-        title: "Registration successful",
-        description: "Welcome to FinJourney! Let's set up your profile.",
-      });
-      
-      // Navigate to onboarding
-      navigate("/onboarding");
+      if (error) {
+        console.error("Registration failed:", error);
+        toast({
+          title: "Registration failed",
+          description: error.message || "Please try again or use a different email.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Registration successful",
+          description: "Welcome to FinJourney! Let's set up your profile.",
+        });
+        
+        // The user will be redirected automatically through the auth listener in the context
+      }
     } catch (error) {
       console.error("Registration failed:", error);
       toast({
         title: "Registration failed",
-        description: "Please try again or use a different email.",
+        description: "An unexpected error occurred. Please try again later.",
         variant: "destructive",
       });
     }
@@ -125,7 +137,9 @@ const Register = () => {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">Register</Button>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Registering..." : "Register"}
+                </Button>
               </form>
             </Form>
           </CardContent>
